@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package todo;
+
+enum TodoStatus {
+    TODO_STATUS_DOING = 0;
+    TODO_STATUS_DONE = 1;
+}
+
+message Todo {
+    string id = 1;
+    string title = 2;
+    string description = 3;
+    TodoStatus status = 4;
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}
+
+message GetTodosRequest {
+    repeated string id = 1;
+}
+
+message CreateTodoRequest {
+    string title = 1;
+    string description = 2;
+}
+
+message DeleteTodoRequest {
+    string id = 1;
+}
+
+message DeleteTodoResponse {}
+
+service TodoService {
+    rpc GetTodos(GetTodosRequest) returns (stream Todo) {}
+    rpc CreateTodo(CreateTodoRequest) returns (Todo) {}
+    rpc UpdateTodo(Todo) returns (Todo) {}
+    rpc DeleteTodo(DeleteTodoRequest) returns (DeleteTodoResponse) {}
+}
