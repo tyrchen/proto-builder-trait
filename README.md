@@ -30,6 +30,10 @@ fn main() {
         .with_sqlx_type(&["todo.TodoStatus"])
         .with_derive_builder_into("todo.Todo", &["id", "title", "status", "description"])
         .with_derive_builder_option("todo.Todo", &["created_at", "updated_at"])
+        .with_field_attributes(
+                &["todo.Todo.created_at", "todo.Todo.updated_at"],
+                &["#[derive(Copy)]"],
+            )
         .compile_protos(&["fixtures/protos/todo.proto"], &["fixtures/protos"])
         .unwrap();
 }
@@ -56,9 +60,11 @@ pub struct Todo {
     pub status: i32,
     #[prost(message, optional, tag="5")]
     #[builder(setter(into, strip_option), default)]
+    #[derive(Copy)]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag="6")]
     #[builder(setter(into, strip_option), default)]
+    #[derive(Copy)]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

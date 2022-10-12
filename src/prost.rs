@@ -18,6 +18,10 @@ pub trait BuilderAttributes {
     fn with_derive_builder_into(&mut self, path: &str, fields: &[&str]) -> &mut Self;
     /// add field attributes with `#[builder(setter(into, strip_option), default)]`
     fn with_derive_builder_option(&mut self, path: &str, fields: &[&str]) -> &mut Self;
+    /// add type attributes
+    fn with_type_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self;
+    /// add field attributes
+    fn with_field_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self;
 }
 
 impl BuilderAttributes for Config {
@@ -58,6 +62,21 @@ impl BuilderAttributes for Config {
             builder.field_attribute(format!("{}.{}", path, field), derive_builder_option_attr())
         })
     }
+
+    fn with_type_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self {
+        let attr = attributes.join("\n");
+
+        paths.iter().fold(self, |builder, ty| {
+            builder.type_attribute(ty, attr.as_str())
+        })
+    }
+
+    fn with_field_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self {
+        let attr = attributes.join("\n");
+        paths.iter().fold(self, |builder, ty| {
+            builder.field_attribute(ty, attr.as_str())
+        })
+    }
 }
 
 #[cfg(test)]
@@ -77,6 +96,10 @@ mod tests {
             .with_sqlx_type(&["todo.TodoStatus"])
             .with_derive_builder_into("todo.Todo", &["id", "title", "status", "description"])
             .with_derive_builder_option("todo.Todo", &["created_at", "updated_at"])
+            .with_field_attributes(
+                &["todo.Todo.created_at", "todo.Todo.updated_at"],
+                &["#[derive(Copy)]"],
+            )
             .compile_protos(&["fixtures/protos/todo.proto"], &["fixtures/protos"])
             .unwrap();
         insta::assert_snapshot!(fs::read_to_string(filename).unwrap(), @r###"
@@ -98,9 +121,11 @@ mod tests {
             pub status: i32,
             #[prost(message, optional, tag="5")]
             #[builder(setter(into, strip_option), default)]
+            #[derive(Copy)]
             pub created_at: ::core::option::Option<::prost_types::Timestamp>,
             #[prost(message, optional, tag="6")]
             #[builder(setter(into, strip_option), default)]
+            #[derive(Copy)]
             pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         }
         #[derive(Clone, PartialEq, ::prost::Message)]
