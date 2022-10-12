@@ -19,7 +19,7 @@ proto-builder-trait = "0.1"
 In your build.rs:
 
 ```rust
-use proto_builder_trait::ProtoBuilder;
+use proto_builder_trait::prost::BuilderAttributes;
 use prost_build::Config;
 
 fn main() {

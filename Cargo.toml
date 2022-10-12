@@ -1,13 +1,13 @@
 [package]
 name = "proto-builder-trait"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 documentation = "https://docs.rs/proto-builder-trait"
 repository = "https://github.com/tyrchen/proto-builder-trait"
 homepage = "https://github.com/tyrchen/proto-builder-trait"
 description = """
-Builder tools for easily adding attributes for compiled prost/tonic. serde/sqlx/derive_builder are supported.
+Builder tools for easily adding attributes for prost-build/tonic-build generated code. serde/sqlx/derive_builder are supported.
 """
 readme = "README.md"
 keywords = ["prost", "tonic", "build"]
@@ -20,8 +20,8 @@ prost = ["prost-build"]
 
 [dependencies]
 prost-build = { version = "0.11.1", optional = true }
-tempfile = "3.3.0"
 tonic-build = { version = "0.8.2", optional = true }
 
 [dev-dependencies]
 insta = "1.21.0"
+tempfile = "3.3.0"
