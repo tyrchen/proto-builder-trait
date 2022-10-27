@@ -25,9 +25,9 @@ use prost_build::Config;
 fn main() {
     Config::default()
         .out_dir(path.path())
-        .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true)
-        .with_derive_builder(&["todo.Todo"])
-        .with_sqlx_type(&["todo.TodoStatus"])
+        .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true, Some(&[r#"#[serde(rename_all = "camelCase")]"#]))
+        .with_derive_builder(&["todo.Todo"], Some(&[r#"#[builder(build_fn(name = "private_build"))]"#]))
+        .with_sqlx_type(&["todo.TodoStatus"], None)
         .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -41,8 +41,10 @@ This will generate the following code:
 
 ```rust
 #[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[derive(derive_builder::Builder)]
 #[builder(setter(into, strip_option), default)]
+#[builder(build_fn(name = "private_build"))]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Todo {
     #[prost(string, tag="1")]
@@ -81,6 +83,7 @@ pub struct DeleteTodoRequest {
 pub struct DeleteTodoResponse {
 }
 #[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[derive(sqlx::Type)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

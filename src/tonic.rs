@@ -4,44 +4,56 @@ use tonic_build::Builder;
 /// provide extra attributes to the generated protobuf code easily
 pub trait BuilderAttributes {
     /// add type attributes with `#[derive(serde::Serialize, serde::Deserialize)]`
-    fn with_serde(self, paths: &[&str], ser: bool, de: bool) -> Self;
+    fn with_serde(self, paths: &[&str], ser: bool, de: bool, extra_attrs: Option<&[&str]>) -> Self;
     /// add type attributes with `#[derive(sqlx::Type)]`
-    fn with_sqlx_type(self, paths: &[&str]) -> Self;
+    fn with_sqlx_type(self, paths: &[&str], extra_attrs: Option<&[&str]>) -> Self;
     /// add type attributes with `#[derive(sqlx::FromRow)]`
-    fn with_sqlx_from_row(self, paths: &[&str]) -> Self;
+    fn with_sqlx_from_row(self, paths: &[&str], extra_attrs: Option<&[&str]>) -> Self;
     /// add type attributes with `#[derive(derive_builder::Builder)]`
-    fn with_derive_builder(self, paths: &[&str]) -> Self;
+    fn with_derive_builder(self, paths: &[&str], extra_attrs: Option<&[&str]>) -> Self;
     /// add type attributes
     fn with_type_attributes(self, paths: &[&str], attributes: &[&str]) -> Self;
     /// add field attributes
     fn with_field_attributes(self, paths: &[&str], attributes: &[&str]) -> Self;
+    /// add optional type attributes
+    fn with_optional_type_attributes(self, paths: &[&str], attributes: Option<&[&str]>) -> Self;
+    /// add optional field attributes
+    fn with_optional_field_attributes(self, paths: &[&str], attributes: Option<&[&str]>) -> Self;
 }
 
 /// provide extra attributes to the generated protobuf code easily
 impl BuilderAttributes for Builder {
-    fn with_serde(self, paths: &[&str], ser: bool, de: bool) -> Self {
+    fn with_serde(self, paths: &[&str], ser: bool, de: bool, extra_attrs: Option<&[&str]>) -> Self {
         let attr = serde_attr(ser, de);
 
-        paths
-            .iter()
-            .fold(self, |builder, ty| builder.type_attribute(ty, attr))
-    }
-
-    fn with_sqlx_type(self, paths: &[&str]) -> Self {
         paths.iter().fold(self, |builder, ty| {
-            builder.type_attribute(ty, sqlx_type_attr())
+            builder
+                .type_attribute(ty, attr)
+                .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
 
-    fn with_sqlx_from_row(self, paths: &[&str]) -> Self {
+    fn with_sqlx_type(self, paths: &[&str], extra_attrs: Option<&[&str]>) -> Self {
         paths.iter().fold(self, |builder, ty| {
-            builder.type_attribute(ty, sqlx_from_row_attr())
+            builder
+                .type_attribute(ty, sqlx_type_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
 
-    fn with_derive_builder(self, paths: &[&str]) -> Self {
+    fn with_sqlx_from_row(self, paths: &[&str], extra_attrs: Option<&[&str]>) -> Self {
         paths.iter().fold(self, |builder, ty| {
-            builder.type_attribute(ty, derive_builder_attr())
+            builder
+                .type_attribute(ty, sqlx_from_row_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
+        })
+    }
+
+    fn with_derive_builder(self, paths: &[&str], extra_attrs: Option<&[&str]>) -> Self {
+        paths.iter().fold(self, |builder, ty| {
+            builder
+                .type_attribute(ty, derive_builder_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
 
@@ -59,6 +71,22 @@ impl BuilderAttributes for Builder {
             builder.field_attribute(ty, attr.as_str())
         })
     }
+
+    fn with_optional_type_attributes(self, paths: &[&str], attributes: Option<&[&str]>) -> Self {
+        if let Some(attributes) = attributes {
+            self.with_type_attributes(paths, attributes)
+        } else {
+            self
+        }
+    }
+
+    fn with_optional_field_attributes(self, paths: &[&str], attributes: Option<&[&str]>) -> Self {
+        if let Some(attributes) = attributes {
+            self.with_field_attributes(paths, attributes)
+        } else {
+            self
+        }
+    }
 }
 
 #[cfg(test)]
@@ -73,9 +101,17 @@ mod tests {
         let filename = path.path().join("todo.rs");
         tonic_build::configure()
             .out_dir(path.path())
-            .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true)
-            .with_derive_builder(&["todo.Todo"])
-            .with_sqlx_type(&["todo.TodoStatus"])
+            .with_serde(
+                &["todo.Todo", "todo.TodoStatus"],
+                true,
+                true,
+                Some(&[r#"#[serde(rename_all = "camelCase")]"#]),
+            )
+            .with_derive_builder(
+                &["todo.Todo"],
+                Some(&[r#"#[builder(build_fn(name = "private_build"))]"#]),
+            )
+            .with_sqlx_type(&["todo.TodoStatus"], None)
             .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -84,8 +120,10 @@ mod tests {
             .unwrap();
         insta::assert_snapshot!(fs::read_to_string(filename).unwrap(), @r###"
         #[derive(serde::Serialize, serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         #[derive(derive_builder::Builder)]
         #[builder(setter(into, strip_option), default)]
+        #[builder(build_fn(name = "private_build"))]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct Todo {
             #[prost(string, tag="1")]
@@ -124,6 +162,7 @@ mod tests {
         pub struct DeleteTodoResponse {
         }
         #[derive(serde::Serialize, serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         #[derive(sqlx::Type)]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
         #[repr(i32)]

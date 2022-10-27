@@ -4,43 +4,75 @@ use prost_build::Config;
 /// provide extra attributes to the generated protobuf code easily
 pub trait BuilderAttributes {
     /// add type attributes with `#[derive(serde::Serialize, serde::Deserialize)]`
-    fn with_serde(&mut self, paths: &[&str], ser: bool, de: bool) -> &mut Self;
+    fn with_serde(
+        &mut self,
+        paths: &[&str],
+        ser: bool,
+        de: bool,
+        extra_attrs: Option<&[&str]>,
+    ) -> &mut Self;
     /// add type attributes with `#[derive(sqlx::Type)]`
-    fn with_sqlx_type(&mut self, paths: &[&str]) -> &mut Self;
+    fn with_sqlx_type(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
     /// add type attributes with `#[derive(sqlx::FromRow)]`
-    fn with_sqlx_from_row(&mut self, paths: &[&str]) -> &mut Self;
+    fn with_sqlx_from_row(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
     /// add type attributes with `#[derive(derive_builder::Builder)]`
-    fn with_derive_builder(&mut self, paths: &[&str]) -> &mut Self;
+    fn with_derive_builder(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
     /// add type attributes
     fn with_type_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self;
     /// add field attributes
     fn with_field_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self;
+    /// add optional type attributes
+    fn with_optional_type_attributes(
+        &mut self,
+        paths: &[&str],
+        attributes: Option<&[&str]>,
+    ) -> &mut Self;
+    /// add optional field attributes
+    fn with_optional_field_attributes(
+        &mut self,
+        paths: &[&str],
+        attributes: Option<&[&str]>,
+    ) -> &mut Self;
 }
 
 impl BuilderAttributes for Config {
-    fn with_serde(&mut self, paths: &[&str], ser: bool, de: bool) -> &mut Self {
+    fn with_serde(
+        &mut self,
+        paths: &[&str],
+        ser: bool,
+        de: bool,
+        extra_attrs: Option<&[&str]>,
+    ) -> &mut Self {
         let attr = serde_attr(ser, de);
 
-        paths
-            .iter()
-            .fold(self, |builder, ty| builder.type_attribute(ty, attr))
-    }
-
-    fn with_sqlx_type(&mut self, paths: &[&str]) -> &mut Self {
         paths.iter().fold(self, |builder, ty| {
-            builder.type_attribute(ty, sqlx_type_attr())
+            builder
+                .type_attribute(ty, attr)
+                .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
 
-    fn with_sqlx_from_row(&mut self, paths: &[&str]) -> &mut Self {
+    fn with_sqlx_type(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self {
         paths.iter().fold(self, |builder, ty| {
-            builder.type_attribute(ty, sqlx_from_row_attr())
+            builder
+                .type_attribute(ty, sqlx_type_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
 
-    fn with_derive_builder(&mut self, paths: &[&str]) -> &mut Self {
+    fn with_sqlx_from_row(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self {
         paths.iter().fold(self, |builder, ty| {
-            builder.type_attribute(ty, derive_builder_attr())
+            builder
+                .type_attribute(ty, sqlx_from_row_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
+        })
+    }
+
+    fn with_derive_builder(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self {
+        paths.iter().fold(self, |builder, ty| {
+            builder
+                .type_attribute(ty, derive_builder_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
 
@@ -58,6 +90,30 @@ impl BuilderAttributes for Config {
             builder.field_attribute(ty, attr.as_str())
         })
     }
+
+    fn with_optional_type_attributes(
+        &mut self,
+        paths: &[&str],
+        attributes: Option<&[&str]>,
+    ) -> &mut Self {
+        if let Some(attributes) = attributes {
+            self.with_type_attributes(paths, attributes)
+        } else {
+            self
+        }
+    }
+
+    fn with_optional_field_attributes(
+        &mut self,
+        paths: &[&str],
+        attributes: Option<&[&str]>,
+    ) -> &mut Self {
+        if let Some(attributes) = attributes {
+            self.with_field_attributes(paths, attributes)
+        } else {
+            self
+        }
+    }
 }
 
 #[cfg(test)]
@@ -72,9 +128,17 @@ mod tests {
         let filename = path.path().join("todo.rs");
         Config::default()
             .out_dir(path.path())
-            .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true)
-            .with_derive_builder(&["todo.Todo"])
-            .with_sqlx_type(&["todo.TodoStatus"])
+            .with_serde(
+                &["todo.Todo", "todo.TodoStatus"],
+                true,
+                true,
+                Some(&[r#"#[serde(rename_all = "camelCase")]"#]),
+            )
+            .with_derive_builder(
+                &["todo.Todo"],
+                Some(&[r#"#[builder(build_fn(name = "private_build"))]"#]),
+            )
+            .with_sqlx_type(&["todo.TodoStatus"], None)
             .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -83,8 +147,10 @@ mod tests {
             .unwrap();
         insta::assert_snapshot!(fs::read_to_string(filename).unwrap(), @r###"
         #[derive(serde::Serialize, serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         #[derive(derive_builder::Builder)]
         #[builder(setter(into, strip_option), default)]
+        #[builder(build_fn(name = "private_build"))]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct Todo {
             #[prost(string, tag="1")]
@@ -123,6 +189,7 @@ mod tests {
         pub struct DeleteTodoResponse {
         }
         #[derive(serde::Serialize, serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         #[derive(sqlx::Type)]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
         #[repr(i32)]
