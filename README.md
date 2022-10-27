@@ -28,8 +28,6 @@ fn main() {
         .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true)
         .with_derive_builder(&["todo.Todo"])
         .with_sqlx_type(&["todo.TodoStatus"])
-        .with_derive_builder_into("todo.Todo", &["id", "title", "status", "description"])
-        .with_derive_builder_option("todo.Todo", &["created_at", "updated_at"])
         .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -44,26 +42,21 @@ This will generate the following code:
 ```rust
 #[derive(serde::Serialize, serde::Deserialize)]
 #[derive(derive_builder::Builder)]
+#[builder(setter(into, strip_option), default)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Todo {
     #[prost(string, tag="1")]
-    #[builder(setter(into), default)]
     pub id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
-    #[builder(setter(into), default)]
     pub title: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
-    #[builder(setter(into), default)]
     pub description: ::prost::alloc::string::String,
     #[prost(enumeration="TodoStatus", tag="4")]
-    #[builder(setter(into), default)]
     pub status: i32,
     #[prost(message, optional, tag="5")]
-    #[builder(setter(into, strip_option), default)]
     #[derive(Copy)]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag="6")]
-    #[builder(setter(into, strip_option), default)]
     #[derive(Copy)]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
