@@ -1,7 +1,4 @@
-use crate::utils::{
-    derive_builder_attr, derive_builder_into_attr, derive_builder_option_attr, serde_attr,
-    sqlx_from_row_attr, sqlx_type_attr,
-};
+use crate::utils::{derive_builder_attr, serde_attr, sqlx_from_row_attr, sqlx_type_attr};
 use tonic_build::Builder;
 
 /// provide extra attributes to the generated protobuf code easily
@@ -14,10 +11,6 @@ pub trait BuilderAttributes {
     fn with_sqlx_from_row(self, paths: &[&str]) -> Self;
     /// add type attributes with `#[derive(derive_builder::Builder)]`
     fn with_derive_builder(self, paths: &[&str]) -> Self;
-    /// add field attributes with `#[builder(setter(into), default)]`
-    fn with_derive_builder_into(self, path: &str, fields: &[&str]) -> Self;
-    /// add field attributes with `#[builder(setter(into, strip_option), default)]`
-    fn with_derive_builder_option(self, path: &str, fields: &[&str]) -> Self;
     /// add type attributes
     fn with_type_attributes(self, paths: &[&str], attributes: &[&str]) -> Self;
     /// add field attributes
@@ -33,29 +26,22 @@ impl BuilderAttributes for Builder {
             .iter()
             .fold(self, |builder, ty| builder.type_attribute(ty, attr))
     }
+
     fn with_sqlx_type(self, paths: &[&str]) -> Self {
         paths.iter().fold(self, |builder, ty| {
             builder.type_attribute(ty, sqlx_type_attr())
         })
     }
+
     fn with_sqlx_from_row(self, paths: &[&str]) -> Self {
         paths.iter().fold(self, |builder, ty| {
             builder.type_attribute(ty, sqlx_from_row_attr())
         })
     }
+
     fn with_derive_builder(self, paths: &[&str]) -> Self {
         paths.iter().fold(self, |builder, ty| {
             builder.type_attribute(ty, derive_builder_attr())
-        })
-    }
-    fn with_derive_builder_into(self, path: &str, fields: &[&str]) -> Self {
-        fields.iter().fold(self, |builder, field| {
-            builder.field_attribute(format!("{}.{}", path, field), derive_builder_into_attr())
-        })
-    }
-    fn with_derive_builder_option(self, path: &str, fields: &[&str]) -> Self {
-        fields.iter().fold(self, |builder, field| {
-            builder.field_attribute(format!("{}.{}", path, field), derive_builder_option_attr())
         })
     }
 
@@ -90,8 +76,6 @@ mod tests {
             .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true)
             .with_derive_builder(&["todo.Todo"])
             .with_sqlx_type(&["todo.TodoStatus"])
-            .with_derive_builder_into("todo.Todo", &["id", "title", "status", "description"])
-            .with_derive_builder_option("todo.Todo", &["created_at", "updated_at"])
             .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -101,26 +85,21 @@ mod tests {
         insta::assert_snapshot!(fs::read_to_string(filename).unwrap(), @r###"
         #[derive(serde::Serialize, serde::Deserialize)]
         #[derive(derive_builder::Builder)]
+        #[builder(setter(into, strip_option), default)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct Todo {
             #[prost(string, tag="1")]
-            #[builder(setter(into), default)]
             pub id: ::prost::alloc::string::String,
             #[prost(string, tag="2")]
-            #[builder(setter(into), default)]
             pub title: ::prost::alloc::string::String,
             #[prost(string, tag="3")]
-            #[builder(setter(into), default)]
             pub description: ::prost::alloc::string::String,
             #[prost(enumeration="TodoStatus", tag="4")]
-            #[builder(setter(into), default)]
             pub status: i32,
             #[prost(message, optional, tag="5")]
-            #[builder(setter(into, strip_option), default)]
             #[derive(Copy)]
             pub created_at: ::core::option::Option<::prost_types::Timestamp>,
             #[prost(message, optional, tag="6")]
-            #[builder(setter(into, strip_option), default)]
             #[derive(Copy)]
             pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         }

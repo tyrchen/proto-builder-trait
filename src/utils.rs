@@ -16,13 +16,5 @@ pub fn sqlx_from_row_attr() -> &'static str {
 }
 
 pub fn derive_builder_attr() -> &'static str {
-    "#[derive(derive_builder::Builder)]"
-}
-
-pub fn derive_builder_into_attr() -> &'static str {
-    "#[builder(setter(into), default)]"
-}
-
-pub fn derive_builder_option_attr() -> &'static str {
-    "#[builder(setter(into, strip_option), default)]"
+    "#[derive(derive_builder::Builder)]\n#[builder(setter(into, strip_option), default)]"
 }
