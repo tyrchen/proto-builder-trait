@@ -1,4 +1,6 @@
-use crate::utils::{derive_builder_attr, serde_attr, sqlx_from_row_attr, sqlx_type_attr};
+use crate::utils::{
+    derive_builder_attr, serde_as_attr, serde_attr, sqlx_from_row_attr, sqlx_type_attr,
+};
 use prost_build::Config;
 
 /// provide extra attributes to the generated protobuf code easily
@@ -11,12 +13,15 @@ pub trait BuilderAttributes {
         de: bool,
         extra_attrs: Option<&[&str]>,
     ) -> &mut Self;
+    fn with_serde_as(&mut self, paths: &str, fields: &[(&[&str], &str)]) -> &mut Self;
     /// add type attributes with `#[derive(sqlx::Type)]`
     fn with_sqlx_type(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
     /// add type attributes with `#[derive(sqlx::FromRow)]`
     fn with_sqlx_from_row(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
     /// add type attributes with `#[derive(derive_builder::Builder)]`
     fn with_derive_builder(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
+    /// add type attributes with `#[derive(strum::EnumString)]`
+    fn with_strum(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self;
     /// add type attributes
     fn with_type_attributes(&mut self, paths: &[&str], attributes: &[&str]) -> &mut Self;
     /// add field attributes
@@ -52,6 +57,19 @@ impl BuilderAttributes for Config {
         })
     }
 
+    fn with_serde_as(&mut self, path: &str, fields: &[(&[&str], &str)]) -> &mut Self {
+        let serde_attr = serde_as_attr();
+        fields.iter().fold(
+            self.type_attribute(path, serde_attr),
+            |builder, (paths, attr)| {
+                paths.iter().fold(builder, |builder, p| {
+                    let p = format!("{}.{}", path, p);
+                    builder.field_attribute(p, attr)
+                })
+            },
+        )
+    }
+
     fn with_sqlx_type(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self {
         paths.iter().fold(self, |builder, ty| {
             builder
@@ -72,6 +90,17 @@ impl BuilderAttributes for Config {
         paths.iter().fold(self, |builder, ty| {
             builder
                 .type_attribute(ty, derive_builder_attr())
+                .with_optional_type_attributes(&[ty], extra_attrs)
+        })
+    }
+
+    fn with_strum(&mut self, paths: &[&str], extra_attrs: Option<&[&str]>) -> &mut Self {
+        paths.iter().fold(self, |builder, ty| {
+            builder
+                .type_attribute(
+                    ty,
+                    "#[derive(strum::EnumString, strum::Display,strum::EnumIter)]",
+                )
                 .with_optional_type_attributes(&[ty], extra_attrs)
         })
     }
@@ -134,11 +163,22 @@ mod tests {
                 true,
                 Some(&[r#"#[serde(rename_all = "camelCase")]"#]),
             )
+            .with_serde_as(
+                "todo.Todo",
+                &[(
+                    &["status", "created_at"],
+                    r#"#[serde_as(as = "DisplayFromStr")]"#,
+                )],
+            )
             .with_derive_builder(
                 &["todo.Todo"],
                 Some(&[r#"#[builder(build_fn(name = "private_build"))]"#]),
             )
             .with_sqlx_type(&["todo.TodoStatus"], None)
+            .with_strum(
+                &["todo.TodoStatus"],
+                Some(&[r#"#[strum(ascii_case_insensitive, serialize_all = "snake_case")]"#]),
+            )
             .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -148,6 +188,8 @@ mod tests {
         insta::assert_snapshot!(fs::read_to_string(filename).unwrap(), @r###"
         #[derive(serde::Serialize, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
+        #[serde_with::serde_as]
+        #[serde_with::skip_serializing_none]
         #[derive(derive_builder::Builder)]
         #[builder(setter(into, strip_option), default)]
         #[builder(build_fn(name = "private_build"))]
@@ -160,8 +202,10 @@ mod tests {
             #[prost(string, tag="3")]
             pub description: ::prost::alloc::string::String,
             #[prost(enumeration="TodoStatus", tag="4")]
+            #[serde_as(as = "DisplayFromStr")]
             pub status: i32,
             #[prost(message, optional, tag="5")]
+            #[serde_as(as = "DisplayFromStr")]
             #[derive(Copy)]
             pub created_at: ::core::option::Option<::prost_types::Timestamp>,
             #[prost(message, optional, tag="6")]
@@ -191,6 +235,8 @@ mod tests {
         #[derive(serde::Serialize, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         #[derive(sqlx::Type)]
+        #[derive(strum::EnumString, strum::Display,strum::EnumIter)]
+        #[strum(ascii_case_insensitive, serialize_all = "snake_case")]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
         #[repr(i32)]
         pub enum TodoStatus {

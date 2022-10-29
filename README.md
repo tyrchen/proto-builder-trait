@@ -28,6 +28,10 @@ fn main() {
         .with_serde(&["todo.Todo", "todo.TodoStatus"], true, true, Some(&[r#"#[serde(rename_all = "camelCase")]"#]))
         .with_derive_builder(&["todo.Todo"], Some(&[r#"#[builder(build_fn(name = "private_build"))]"#]))
         .with_sqlx_type(&["todo.TodoStatus"], None)
+        .with_strum(
+                &["todo.TodoStatus"],
+                Some(&[r#"#[strum(ascii_case_insensitive, serialize_all = "snake_case")]"#]),
+            )
         .with_field_attributes(
                 &["todo.Todo.created_at", "todo.Todo.updated_at"],
                 &["#[derive(Copy)]"],
@@ -42,6 +46,8 @@ This will generate the following code:
 ```rust
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde_with::serde_as]
+#[serde_with::skip_serializing_none]
 #[derive(derive_builder::Builder)]
 #[builder(setter(into, strip_option), default)]
 #[builder(build_fn(name = "private_build"))]
@@ -54,8 +60,10 @@ pub struct Todo {
     #[prost(string, tag="3")]
     pub description: ::prost::alloc::string::String,
     #[prost(enumeration="TodoStatus", tag="4")]
+    #[serde_as(as = "DisplayFromStr")]
     pub status: i32,
     #[prost(message, optional, tag="5")]
+    #[serde_as(as = "DisplayFromStr")]
     #[derive(Copy)]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag="6")]
@@ -85,6 +93,8 @@ pub struct DeleteTodoResponse {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[derive(sqlx::Type)]
+#[derive(strum::EnumString, strum::Display,strum::EnumIter)]
+#[strum(ascii_case_insensitive, serialize_all = "snake_case")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum TodoStatus {

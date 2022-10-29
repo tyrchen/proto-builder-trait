@@ -7,6 +7,10 @@ pub fn serde_attr(ser: bool, de: bool) -> &'static str {
     }
 }
 
+pub fn serde_as_attr() -> &'static str {
+    "#[serde_with::serde_as]\n#[serde_with::skip_serializing_none]"
+}
+
 pub fn sqlx_type_attr() -> &'static str {
     "#[derive(sqlx::Type)]"
 }
