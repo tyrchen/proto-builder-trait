@@ -193,49 +193,53 @@ mod tests {
         #[derive(derive_builder::Builder)]
         #[builder(setter(into, strip_option), default)]
         #[builder(build_fn(name = "private_build"))]
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct Todo {
-            #[prost(string, tag="1")]
+            #[prost(string, tag = "1")]
             pub id: ::prost::alloc::string::String,
-            #[prost(string, tag="2")]
+            #[prost(string, tag = "2")]
             pub title: ::prost::alloc::string::String,
-            #[prost(string, tag="3")]
+            #[prost(string, tag = "3")]
             pub description: ::prost::alloc::string::String,
-            #[prost(enumeration="TodoStatus", tag="4")]
+            #[prost(enumeration = "TodoStatus", tag = "4")]
             #[serde_as(as = "DisplayFromStr")]
             pub status: i32,
-            #[prost(message, optional, tag="5")]
+            #[prost(message, optional, tag = "5")]
             #[serde_as(as = "DisplayFromStr")]
             #[derive(Copy)]
             pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-            #[prost(message, optional, tag="6")]
+            #[prost(message, optional, tag = "6")]
             #[derive(Copy)]
             pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct GetTodosRequest {
-            #[prost(string, repeated, tag="1")]
+            #[prost(string, repeated, tag = "1")]
             pub id: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct CreateTodoRequest {
-            #[prost(string, tag="1")]
+            #[prost(string, tag = "1")]
             pub title: ::prost::alloc::string::String,
-            #[prost(string, tag="2")]
+            #[prost(string, tag = "2")]
             pub description: ::prost::alloc::string::String,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct DeleteTodoRequest {
-            #[prost(string, tag="1")]
+            #[prost(string, tag = "1")]
             pub id: ::prost::alloc::string::String,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
-        pub struct DeleteTodoResponse {
-        }
+        pub struct DeleteTodoResponse {}
         #[derive(serde::Serialize, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         #[derive(sqlx::Type)]
-        #[derive(strum::EnumString, strum::Display,strum::EnumIter)]
+        #[derive(strum::EnumString, strum::Display, strum::EnumIter)]
         #[strum(ascii_case_insensitive, serialize_all = "snake_case")]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
         #[repr(i32)]
@@ -252,6 +256,14 @@ mod tests {
                 match self {
                     TodoStatus::Doing => "TODO_STATUS_DOING",
                     TodoStatus::Done => "TODO_STATUS_DONE",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "TODO_STATUS_DOING" => Some(Self::Doing),
+                    "TODO_STATUS_DONE" => Some(Self::Done),
+                    _ => None,
                 }
             }
         }

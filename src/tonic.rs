@@ -164,45 +164,49 @@ mod tests {
         #[derive(derive_builder::Builder)]
         #[builder(setter(into, strip_option), default)]
         #[builder(build_fn(name = "private_build"))]
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct Todo {
-            #[prost(string, tag="1")]
+            #[prost(string, tag = "1")]
             pub id: ::prost::alloc::string::String,
-            #[prost(string, tag="2")]
+            #[prost(string, tag = "2")]
             pub title: ::prost::alloc::string::String,
-            #[prost(string, tag="3")]
+            #[prost(string, tag = "3")]
             pub description: ::prost::alloc::string::String,
-            #[prost(enumeration="TodoStatus", tag="4")]
+            #[prost(enumeration = "TodoStatus", tag = "4")]
             #[serde_as(as = "DisplayFromStr")]
             pub status: i32,
-            #[prost(message, optional, tag="5")]
+            #[prost(message, optional, tag = "5")]
             #[serde_as(as = "DisplayFromStr")]
             #[derive(Copy)]
             pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-            #[prost(message, optional, tag="6")]
+            #[prost(message, optional, tag = "6")]
             #[derive(Copy)]
             pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct GetTodosRequest {
-            #[prost(string, repeated, tag="1")]
+            #[prost(string, repeated, tag = "1")]
             pub id: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct CreateTodoRequest {
-            #[prost(string, tag="1")]
+            #[prost(string, tag = "1")]
             pub title: ::prost::alloc::string::String,
-            #[prost(string, tag="2")]
+            #[prost(string, tag = "2")]
             pub description: ::prost::alloc::string::String,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct DeleteTodoRequest {
-            #[prost(string, tag="1")]
+            #[prost(string, tag = "1")]
             pub id: ::prost::alloc::string::String,
         }
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
-        pub struct DeleteTodoResponse {
-        }
+        pub struct DeleteTodoResponse {}
         #[derive(serde::Serialize, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         #[derive(sqlx::Type)]
@@ -225,6 +229,14 @@ mod tests {
                     TodoStatus::Done => "TODO_STATUS_DONE",
                 }
             }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "TODO_STATUS_DOING" => Some(Self::Doing),
+                    "TODO_STATUS_DONE" => Some(Self::Done),
+                    _ => None,
+                }
+            }
         }
         /// Generated client implementations.
         pub mod todo_service_client {
@@ -239,7 +251,7 @@ mod tests {
                 /// Attempt to create a new client by connecting to a given endpoint.
                 pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
                 where
-                    D: std::convert::TryInto<tonic::transport::Endpoint>,
+                    D: TryInto<tonic::transport::Endpoint>,
                     D::Error: Into<StdError>,
                 {
                     let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
@@ -295,10 +307,26 @@ mod tests {
                     self.inner = self.inner.accept_compressed(encoding);
                     self
                 }
+                /// Limits the maximum size of a decoded message.
+                ///
+                /// Default: `4MB`
+                #[must_use]
+                pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+                    self.inner = self.inner.max_decoding_message_size(limit);
+                    self
+                }
+                /// Limits the maximum size of an encoded message.
+                ///
+                /// Default: `usize::MAX`
+                #[must_use]
+                pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+                    self.inner = self.inner.max_encoding_message_size(limit);
+                    self
+                }
                 pub async fn get_todos(
                     &mut self,
                     request: impl tonic::IntoRequest<super::GetTodosRequest>,
-                ) -> Result<
+                ) -> std::result::Result<
                     tonic::Response<tonic::codec::Streaming<super::Todo>>,
                     tonic::Status,
                 > {
@@ -315,12 +343,14 @@ mod tests {
                     let path = http::uri::PathAndQuery::from_static(
                         "/todo.TodoService/GetTodos",
                     );
-                    self.inner.server_streaming(request.into_request(), path, codec).await
+                    let mut req = request.into_request();
+                    req.extensions_mut().insert(GrpcMethod::new("todo.TodoService", "GetTodos"));
+                    self.inner.server_streaming(req, path, codec).await
                 }
                 pub async fn create_todo(
                     &mut self,
                     request: impl tonic::IntoRequest<super::CreateTodoRequest>,
-                ) -> Result<tonic::Response<super::Todo>, tonic::Status> {
+                ) -> std::result::Result<tonic::Response<super::Todo>, tonic::Status> {
                     self.inner
                         .ready()
                         .await
@@ -334,12 +364,15 @@ mod tests {
                     let path = http::uri::PathAndQuery::from_static(
                         "/todo.TodoService/CreateTodo",
                     );
-                    self.inner.unary(request.into_request(), path, codec).await
+                    let mut req = request.into_request();
+                    req.extensions_mut()
+                        .insert(GrpcMethod::new("todo.TodoService", "CreateTodo"));
+                    self.inner.unary(req, path, codec).await
                 }
                 pub async fn update_todo(
                     &mut self,
                     request: impl tonic::IntoRequest<super::Todo>,
-                ) -> Result<tonic::Response<super::Todo>, tonic::Status> {
+                ) -> std::result::Result<tonic::Response<super::Todo>, tonic::Status> {
                     self.inner
                         .ready()
                         .await
@@ -353,12 +386,18 @@ mod tests {
                     let path = http::uri::PathAndQuery::from_static(
                         "/todo.TodoService/UpdateTodo",
                     );
-                    self.inner.unary(request.into_request(), path, codec).await
+                    let mut req = request.into_request();
+                    req.extensions_mut()
+                        .insert(GrpcMethod::new("todo.TodoService", "UpdateTodo"));
+                    self.inner.unary(req, path, codec).await
                 }
                 pub async fn delete_todo(
                     &mut self,
                     request: impl tonic::IntoRequest<super::DeleteTodoRequest>,
-                ) -> Result<tonic::Response<super::DeleteTodoResponse>, tonic::Status> {
+                ) -> std::result::Result<
+                    tonic::Response<super::DeleteTodoResponse>,
+                    tonic::Status,
+                > {
                     self.inner
                         .ready()
                         .await
@@ -372,7 +411,10 @@ mod tests {
                     let path = http::uri::PathAndQuery::from_static(
                         "/todo.TodoService/DeleteTodo",
                     );
-                    self.inner.unary(request.into_request(), path, codec).await
+                    let mut req = request.into_request();
+                    req.extensions_mut()
+                        .insert(GrpcMethod::new("todo.TodoService", "DeleteTodo"));
+                    self.inner.unary(req, path, codec).await
                 }
             }
         }
@@ -380,37 +422,42 @@ mod tests {
         pub mod todo_service_server {
             #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
             use tonic::codegen::*;
-            ///Generated trait containing gRPC methods that should be implemented for use with TodoServiceServer.
+            /// Generated trait containing gRPC methods that should be implemented for use with TodoServiceServer.
             #[async_trait]
             pub trait TodoService: Send + Sync + 'static {
-                ///Server streaming response type for the GetTodos method.
-                type GetTodosStream: futures_core::Stream<
-                        Item = Result<super::Todo, tonic::Status>,
+                /// Server streaming response type for the GetTodos method.
+                type GetTodosStream: tonic::codegen::tokio_stream::Stream<
+                        Item = std::result::Result<super::Todo, tonic::Status>,
                     >
                     + Send
                     + 'static;
                 async fn get_todos(
                     &self,
                     request: tonic::Request<super::GetTodosRequest>,
-                ) -> Result<tonic::Response<Self::GetTodosStream>, tonic::Status>;
+                ) -> std::result::Result<tonic::Response<Self::GetTodosStream>, tonic::Status>;
                 async fn create_todo(
                     &self,
                     request: tonic::Request<super::CreateTodoRequest>,
-                ) -> Result<tonic::Response<super::Todo>, tonic::Status>;
+                ) -> std::result::Result<tonic::Response<super::Todo>, tonic::Status>;
                 async fn update_todo(
                     &self,
                     request: tonic::Request<super::Todo>,
-                ) -> Result<tonic::Response<super::Todo>, tonic::Status>;
+                ) -> std::result::Result<tonic::Response<super::Todo>, tonic::Status>;
                 async fn delete_todo(
                     &self,
                     request: tonic::Request<super::DeleteTodoRequest>,
-                ) -> Result<tonic::Response<super::DeleteTodoResponse>, tonic::Status>;
+                ) -> std::result::Result<
+                    tonic::Response<super::DeleteTodoResponse>,
+                    tonic::Status,
+                >;
             }
             #[derive(Debug)]
             pub struct TodoServiceServer<T: TodoService> {
                 inner: _Inner<T>,
                 accept_compression_encodings: EnabledCompressionEncodings,
                 send_compression_encodings: EnabledCompressionEncodings,
+                max_decoding_message_size: Option<usize>,
+                max_encoding_message_size: Option<usize>,
             }
             struct _Inner<T>(Arc<T>);
             impl<T: TodoService> TodoServiceServer<T> {
@@ -423,6 +470,8 @@ mod tests {
                         inner,
                         accept_compression_encodings: Default::default(),
                         send_compression_encodings: Default::default(),
+                        max_decoding_message_size: None,
+                        max_encoding_message_size: None,
                     }
                 }
                 pub fn with_interceptor<F>(
@@ -446,6 +495,22 @@ mod tests {
                     self.send_compression_encodings.enable(encoding);
                     self
                 }
+                /// Limits the maximum size of a decoded message.
+                ///
+                /// Default: `4MB`
+                #[must_use]
+                pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+                    self.max_decoding_message_size = Some(limit);
+                    self
+                }
+                /// Limits the maximum size of an encoded message.
+                ///
+                /// Default: `usize::MAX`
+                #[must_use]
+                pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+                    self.max_encoding_message_size = Some(limit);
+                    self
+                }
             }
             impl<T, B> tonic::codegen::Service<http::Request<B>> for TodoServiceServer<T>
             where
@@ -459,7 +524,7 @@ mod tests {
                 fn poll_ready(
                     &mut self,
                     _cx: &mut Context<'_>,
-                ) -> Poll<Result<(), Self::Error>> {
+                ) -> Poll<std::result::Result<(), Self::Error>> {
                     Poll::Ready(Ok(()))
                 }
                 fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -482,13 +547,17 @@ mod tests {
                                     &mut self,
                                     request: tonic::Request<super::GetTodosRequest>,
                                 ) -> Self::Future {
-                                    let inner = self.0.clone();
-                                    let fut = async move { (*inner).get_todos(request).await };
+                                    let inner = Arc::clone(&self.0);
+                                    let fut = async move {
+                                        <T as TodoService>::get_todos(&inner, request).await
+                                    };
                                     Box::pin(fut)
                                 }
                             }
                             let accept_compression_encodings = self.accept_compression_encodings;
                             let send_compression_encodings = self.send_compression_encodings;
+                            let max_decoding_message_size = self.max_decoding_message_size;
+                            let max_encoding_message_size = self.max_encoding_message_size;
                             let inner = self.inner.clone();
                             let fut = async move {
                                 let inner = inner.0;
@@ -498,6 +567,10 @@ mod tests {
                                     .apply_compression_config(
                                         accept_compression_encodings,
                                         send_compression_encodings,
+                                    )
+                                    .apply_max_message_size_config(
+                                        max_decoding_message_size,
+                                        max_encoding_message_size,
                                     );
                                 let res = grpc.server_streaming(method, req).await;
                                 Ok(res)
@@ -520,13 +593,17 @@ mod tests {
                                     &mut self,
                                     request: tonic::Request<super::CreateTodoRequest>,
                                 ) -> Self::Future {
-                                    let inner = self.0.clone();
-                                    let fut = async move { (*inner).create_todo(request).await };
+                                    let inner = Arc::clone(&self.0);
+                                    let fut = async move {
+                                        <T as TodoService>::create_todo(&inner, request).await
+                                    };
                                     Box::pin(fut)
                                 }
                             }
                             let accept_compression_encodings = self.accept_compression_encodings;
                             let send_compression_encodings = self.send_compression_encodings;
+                            let max_decoding_message_size = self.max_decoding_message_size;
+                            let max_encoding_message_size = self.max_encoding_message_size;
                             let inner = self.inner.clone();
                             let fut = async move {
                                 let inner = inner.0;
@@ -536,6 +613,10 @@ mod tests {
                                     .apply_compression_config(
                                         accept_compression_encodings,
                                         send_compression_encodings,
+                                    )
+                                    .apply_max_message_size_config(
+                                        max_decoding_message_size,
+                                        max_encoding_message_size,
                                     );
                                 let res = grpc.unary(method, req).await;
                                 Ok(res)
@@ -556,13 +637,17 @@ mod tests {
                                     &mut self,
                                     request: tonic::Request<super::Todo>,
                                 ) -> Self::Future {
-                                    let inner = self.0.clone();
-                                    let fut = async move { (*inner).update_todo(request).await };
+                                    let inner = Arc::clone(&self.0);
+                                    let fut = async move {
+                                        <T as TodoService>::update_todo(&inner, request).await
+                                    };
                                     Box::pin(fut)
                                 }
                             }
                             let accept_compression_encodings = self.accept_compression_encodings;
                             let send_compression_encodings = self.send_compression_encodings;
+                            let max_decoding_message_size = self.max_decoding_message_size;
+                            let max_encoding_message_size = self.max_encoding_message_size;
                             let inner = self.inner.clone();
                             let fut = async move {
                                 let inner = inner.0;
@@ -572,6 +657,10 @@ mod tests {
                                     .apply_compression_config(
                                         accept_compression_encodings,
                                         send_compression_encodings,
+                                    )
+                                    .apply_max_message_size_config(
+                                        max_decoding_message_size,
+                                        max_encoding_message_size,
                                     );
                                 let res = grpc.unary(method, req).await;
                                 Ok(res)
@@ -594,13 +683,17 @@ mod tests {
                                     &mut self,
                                     request: tonic::Request<super::DeleteTodoRequest>,
                                 ) -> Self::Future {
-                                    let inner = self.0.clone();
-                                    let fut = async move { (*inner).delete_todo(request).await };
+                                    let inner = Arc::clone(&self.0);
+                                    let fut = async move {
+                                        <T as TodoService>::delete_todo(&inner, request).await
+                                    };
                                     Box::pin(fut)
                                 }
                             }
                             let accept_compression_encodings = self.accept_compression_encodings;
                             let send_compression_encodings = self.send_compression_encodings;
+                            let max_decoding_message_size = self.max_decoding_message_size;
+                            let max_encoding_message_size = self.max_encoding_message_size;
                             let inner = self.inner.clone();
                             let fut = async move {
                                 let inner = inner.0;
@@ -610,6 +703,10 @@ mod tests {
                                     .apply_compression_config(
                                         accept_compression_encodings,
                                         send_compression_encodings,
+                                    )
+                                    .apply_max_message_size_config(
+                                        max_decoding_message_size,
+                                        max_encoding_message_size,
                                     );
                                 let res = grpc.unary(method, req).await;
                                 Ok(res)
@@ -638,12 +735,14 @@ mod tests {
                         inner,
                         accept_compression_encodings: self.accept_compression_encodings,
                         send_compression_encodings: self.send_compression_encodings,
+                        max_decoding_message_size: self.max_decoding_message_size,
+                        max_encoding_message_size: self.max_encoding_message_size,
                     }
                 }
             }
             impl<T: TodoService> Clone for _Inner<T> {
                 fn clone(&self) -> Self {
-                    Self(self.0.clone())
+                    Self(Arc::clone(&self.0))
                 }
             }
             impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
