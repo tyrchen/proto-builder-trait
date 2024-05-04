@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 ---
+## [0.6.1](https://github.com/tyrchen/proto-builder-trait/compare/v0.6.0..v0.6.1) - 2024-05-04
+
+### Miscellaneous Chores
+
+- bump dep version - ([f6c7bc0](https://github.com/tyrchen/proto-builder-trait/commit/f6c7bc00b9129011ec2cea7d5e0270d50743b5b5)) - Tyr Chen
+
+### Other
+
+- Update CHANGELOG.md - ([e381b98](https://github.com/tyrchen/proto-builder-trait/commit/e381b98049409c5dbee0278425286163318ce135)) - Tyr Chen
+
+---
 ## [0.6.0](https://github.com/tyrchen/proto-builder-trait/compare/v0.5.1..v0.6.0) - 2023-12-18
 
 ### Miscellaneous Chores
