@@ -194,7 +194,6 @@ mod tests {
         #[derive(derive_builder::Builder)]
         #[builder(setter(into, strip_option), default)]
         #[builder(build_fn(name = "private_build"))]
-        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct Todo {
             #[prost(string, tag = "1")]
@@ -214,13 +213,11 @@ mod tests {
             #[derive(Copy)]
             pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         }
-        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct GetTodosRequest {
             #[prost(string, repeated, tag = "1")]
             pub id: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
         }
-        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct CreateTodoRequest {
             #[prost(string, tag = "1")]
@@ -228,14 +225,12 @@ mod tests {
             #[prost(string, tag = "2")]
             pub description: ::prost::alloc::string::String,
         }
-        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct DeleteTodoRequest {
             #[prost(string, tag = "1")]
             pub id: ::prost::alloc::string::String,
         }
-        #[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        #[derive(Clone, Copy, PartialEq, ::prost::Message)]
         pub struct DeleteTodoResponse {}
         #[derive(serde::Serialize, serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
@@ -255,8 +250,8 @@ mod tests {
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             pub fn as_str_name(&self) -> &'static str {
                 match self {
-                    TodoStatus::Doing => "TODO_STATUS_DOING",
-                    TodoStatus::Done => "TODO_STATUS_DONE",
+                    Self::Doing => "TODO_STATUS_DOING",
+                    Self::Done => "TODO_STATUS_DONE",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
